@@ -2,6 +2,7 @@ package burp;
 
 import javax.swing.AbstractAction;
 import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
@@ -36,6 +37,11 @@ class ConfigMenu implements Runnable, IExtensionStateListener {
     static final List<String> IMAGE_RESOURCE_EXTENSIONS = new ArrayList<>();
 
     /**
+     * Expose the configuration option to allow the user to pause the logging.
+     */
+    static volatile boolean IS_LOGGING_PAUSED = Boolean.FALSE;
+
+    /**
      * Option configuration key for the restriction of the logging of requests in defined target scope.
      */
     private static final String ONLY_INCLUDE_REQUESTS_FROM_SCOPE_CFG_KEY = "ONLY_INCLUDE_REQUESTS_FROM_SCOPE";
@@ -49,6 +55,11 @@ class ConfigMenu implements Runnable, IExtensionStateListener {
      * Option configuration key to allow the user to use a custom location and name for the DB file.
      */
     public static final String DB_FILE_CUSTOM_LOCATION_CFG_KEY = "DB_FILE_CUSTOM_LOCATION";
+
+    /**
+     * Option configuration key to allow the user to pause the logging.
+     */
+    public static final String PAUSE_LOGGING_CFG_KEY = "PAUSE_LOGGING";
 
     /**
      * Extension root configuration menu.
@@ -91,13 +102,11 @@ class ConfigMenu implements Runnable, IExtensionStateListener {
         }
         //Load the save state of the options
         value = this.callbacks.loadExtensionSetting(ONLY_INCLUDE_REQUESTS_FROM_SCOPE_CFG_KEY);
-        if (value != null) {
-            ONLY_INCLUDE_REQUESTS_FROM_SCOPE = Boolean.parseBoolean(value);
-        }
+        ONLY_INCLUDE_REQUESTS_FROM_SCOPE = Boolean.parseBoolean(value);
         value = this.callbacks.loadExtensionSetting(ONLY_INCLUDE_REQUESTS_FROM_SCOPE_CFG_KEY);
-        if (value != null) {
-            EXCLUDE_IMAGE_RESOURCE_REQUESTS = Boolean.parseBoolean(value);
-        }
+        EXCLUDE_IMAGE_RESOURCE_REQUESTS = Boolean.parseBoolean(value);
+        value = this.callbacks.loadExtensionSetting(PAUSE_LOGGING_CFG_KEY);
+        IS_LOGGING_PAUSED = Boolean.parseBoolean(value);
     }
 
     /**
@@ -141,6 +150,55 @@ class ConfigMenu implements Runnable, IExtensionStateListener {
             }
         });
         this.cfgMenu.add(subMenuExcludeImageResources);
+        //Add the menu to pause the logging
+        menuText = "Pause the logging";
+        final JCheckBoxMenuItem subMenuPauseTheLogging = new JCheckBoxMenuItem(menuText, IS_LOGGING_PAUSED);
+        subMenuPauseTheLogging.addActionListener(new AbstractAction(menuText) {
+            public void actionPerformed(ActionEvent e) {
+                if (subMenuPauseTheLogging.isSelected()) {
+                    ConfigMenu.this.callbacks.saveExtensionSetting(PAUSE_LOGGING_CFG_KEY, Boolean.TRUE.toString());
+                    ConfigMenu.IS_LOGGING_PAUSED = Boolean.TRUE;
+                    ConfigMenu.this.trace.writeLog("From now, logging is paused.");
+                } else {
+                    ConfigMenu.this.callbacks.saveExtensionSetting(PAUSE_LOGGING_CFG_KEY, Boolean.FALSE.toString());
+                    ConfigMenu.IS_LOGGING_PAUSED = Boolean.FALSE;
+                    String dbPath = callbacks.loadExtensionSetting(ConfigMenu.DB_FILE_CUSTOM_LOCATION_CFG_KEY);
+                    String msg = "From now, logging is enabled and stored in database file '" + dbPath + "'.";
+                    ConfigMenu.this.trace.writeLog(msg);
+                }
+            }
+        });
+        this.cfgMenu.add(subMenuPauseTheLogging);
+        //Add the menu to change the DB file
+        menuText = "Change the DB file";
+        final JMenuItem subMenuDBFileLocationMenuItem = new JMenuItem(menuText);
+        subMenuDBFileLocationMenuItem.addActionListener(
+                new AbstractAction(menuText) {
+                    public void actionPerformed(ActionEvent e) {
+                        try {
+                            String title = "Change the DB file";
+                            if (!ConfigMenu.IS_LOGGING_PAUSED) {
+                                JOptionPane.showMessageDialog(ConfigMenu.getBurpFrame(), "Logging must be paused prior to update the DB file location!", title, JOptionPane.WARNING_MESSAGE);
+                            } else {
+                                String customStoreFileName = callbacks.loadExtensionSetting(ConfigMenu.DB_FILE_CUSTOM_LOCATION_CFG_KEY);
+                                JFileChooser customStoreFileNameFileChooser = Utilities.createDBFileChooser();
+                                int dbFileSelectionReply = customStoreFileNameFileChooser.showDialog(getBurpFrame(), "Use");
+                                if (dbFileSelectionReply == JFileChooser.APPROVE_OPTION) {
+                                    customStoreFileName = customStoreFileNameFileChooser.getSelectedFile().getAbsolutePath().replaceAll("\\\\", "/");
+                                    activityLogger.updateStoreLocation(customStoreFileName);
+                                    callbacks.saveExtensionSetting(ConfigMenu.DB_FILE_CUSTOM_LOCATION_CFG_KEY, customStoreFileName);
+                                    JOptionPane.showMessageDialog(getBurpFrame(), "DB file updated to use:\n\r" + customStoreFileName, title, JOptionPane.INFORMATION_MESSAGE);
+                                } else {
+                                    JOptionPane.showMessageDialog(getBurpFrame(), "The following database file will continue to be used:\n\r" + customStoreFileName, title, JOptionPane.INFORMATION_MESSAGE);
+                                }
+                            }
+                        } catch (Exception exp) {
+                            ConfigMenu.this.trace.writeLog("Cannot update DB file location: " + exp.getMessage());
+                        }
+                    }
+                }
+        );
+        this.cfgMenu.add(subMenuDBFileLocationMenuItem);
         //Add the sub menu to get statistics about the DB.
         menuText = "Get statistics about the logged events";
         final JMenuItem subMenuDBStatsMenuItem = new JMenuItem(menuText);

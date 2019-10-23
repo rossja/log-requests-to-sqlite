@@ -3,7 +3,7 @@
 [![Coverity Status](https://scan.coverity.com/projects/17099/badge.svg)](https://scan.coverity.com/projects/righettod-log-requests-to-sqlite)
 [![Known Vulnerabilities](https://snyk.io/test/github/righettod/log-requests-to-sqlite/badge.svg?targetFile=build.gradle)](https://snyk.io/test/github/righettod/log-requests-to-sqlite?targetFile=build.gradle)
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![BAppStore Version](https://img.shields.io/badge/BApp%20Store-v1.0.6-orange.svg)](https://portswigger.net/bappstore/d916d94506734f3490e49391595d8747)
+[![BAppStore Version](https://img.shields.io/badge/BApp%20Store-v1.0.8-orange.svg)](https://portswigger.net/bappstore/d916d94506734f3490e49391595d8747)
 
 # Log Requests to SQLite
 
@@ -56,6 +56,28 @@ There is an option to exclude the logging of the requests that target images (ch
 
 The list of supported file extensions is [here](resources/settings.properties).
 
+## Pause the logging
+
+There is an option to pause the logging (re-click on the menu to resume the logging):
+
+![Pause Option Menu](example6a.png)
+
+When the logging is paused then when Burp is restarted, it keep in mind that the logging was previously paused and then reflect the state in the menu:
+
+![Pause Option Menu](example6c.png)
+
+Otherwise, when Burp is started and logging was not previously paused then the following options are proposed:
+
+![Pause Option Menu](example6b.png)
+
+## Change the DB file
+
+:warning: This option require that the logging was paused.
+
+There is an option to change the DB file during a Burp working session:
+
+![ChangeDB Option Menu](example7.png)
+
 ## Statistics
 
 There is an option to obtain statistics about the information logged in the database:
@@ -101,7 +123,27 @@ The attribute **url** must be used to download the JAR file.
 
 The extension is referenced [here](https://portswigger.net/bappstore/d916d94506734f3490e49391595d8747).
 
+# BApp Store update procedure
+
+Procedure kindly provided by the PortSwigger support:
+
+1. BApp Author commits fixes/updates to the master repository.
+2. Once BApp Author is happy that updates need to be pushed to the BApp store, the Author creates a pull request so changes can be merged into the forked repository: `righettod wants to merge xx commits into PortSwigger:master from righettod:master`
+3. BApp Author notifies PortSwigger support that changes need to be merged, support staff reviews changes and then accepts pull request so the changes are merged.
+4. BApp is then compiled from the forked repository version and then pushed to the BApp store.
+
+
+
 # Change log
+
+**1.0.8**
+
+* Add the capacity to pause the logging during a Burp working session - Issue [#9](/../../issues/9).
+* Add the capacity to change the DB file during a Burp working session - Issue [#10](/../../issues/10). 
+
+**1.0.7**
+
+* Upgrade the version of the third party library used to handle the work with the SQLite DB in order to fix exposure to [CVE-2018-20505](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2018-20505).
 
 **1.0.6**
 
